@@ -1,41 +1,24 @@
 var express = require('../../');
 var app = module.exports = express();
-var users = require('./db');
+var axios = require('axios');
+var xmlParser = require('xml2json');
+var conf = module.exports = require('./conf');
 
-// so either you can deal with different types of formatting
-// for expected response in index.js
-app.get('/', function(req, res){
-  res.format({
-    html: function(){
-      res.send('<ul>' + users.map(function(user){
-        return '<li>' + user.name + '</li>';
-      }).join('') + '</ul>');
-    },
-
-    text: function(){
-      res.send(users.map(function(user){
-        return ' - ' + user.name + '\n';
-      }).join(''));
-    },
-
-    json: function(){
-      res.json(users);
-    }
-  });
+app.get('/query-available-subplan-request', async function(req, res){
+  const axios_res = await axios.post(conf.SubPlan.url,conf.SubPlan.xmls,conf.SubPlan.headerConfs);
+  if(axios_res && axios_res['data']){
+    const data = axios_res['data'];
+    res.send(conf.parseData(xmlParser.toJson(data),conf.SubPlan.paths));
+  }
 });
 
-// or you could write a tiny middleware like
-// this to add a layer of abstraction
-// and make things a bit more declarative:
-
-function format(path) {
-  var obj = require(path);
-  return function(req, res){
-    res.format(obj);
-  };
-}
-
-app.get('/users', format('./users'));
+app.get('/query-goods-detail-request', async function(req, res){
+  const axios_res = await axios.post(conf.GoogleDetail.url,conf.GoogleDetail.xmls,conf.GoogleDetail.headerConfs);
+  if(axios_res && axios_res['data']){
+    const data = axios_res['data'];
+    res.send(conf.parseData(xmlParser.toJson(data),conf.GoogleDetail.paths));
+  }
+});
 
 /* istanbul ignore next */
 if (!module.parent) {
